@@ -33,8 +33,8 @@ typedef struct s_md5_ctx {
 
 
 int         md5(char *input, const t_options options);
-int         md5Compression(t_md5_ctx *ctx);
-uint32_t    constructBlock(const unsigned char *buffer);
+void        md5Compression(t_md5_ctx *ctx);
+uint32_t    constructBlockLE(const unsigned char *buffer);
 int         md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len);
 
 #endif

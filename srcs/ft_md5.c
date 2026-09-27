@@ -8,6 +8,10 @@ static const uint32_t g_md5[4] = {
     0x10325476
 };
 
+
+/*
+    Doc: 2^32*abs(sin(i)), where i is in radians
+*/
 static const t_md5_const g_md5const[64] = {
     // Round 1
     {0xd76aa478, 7, 0},
@@ -79,11 +83,6 @@ static const t_md5_const g_md5const[64] = {
     {0xeb86d391, 21, 9}
 };
 
-// #define F(x, y, z) ((x & y) | (~x & z))
-// #define G(x, y, z) ((x & z) | (y & ~z))
-// #define H(x, y, z) (x ^ y ^ z)
-// #define I(x, y, z) (y ^ (x | ~z))
-
 u_int32_t roundF(uint32_t x, uint32_t y, uint32_t z) {
     return ((x & y) | (~x & z));
 }
@@ -109,6 +108,8 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
     unsigned char *buffer = ctx->buffer;
     ctx->bitlen += (uint64_t)len * 8;
     uint64_t input_len = ctx->bitlen;
+
+#ifdef DEBUG
     log_debug("data=[%s]", data);
     for (size_t i = 0; i < len; i++) {
         printf("%08b ",data[i]);
@@ -116,12 +117,14 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
             printf("\n");
     }
     printf("\n");
+#endif
     size_t zeros = (447 - ctx->bitlen) % 512;
+#ifdef DEBUG
     log_debug("Msg contain %zu bits, we will add %zu zeros to make it 448 bits", ctx->bitlen, zeros);
 
     // Message input representation in bits that fits 64 bit
     log_debug("%064lb", ctx->bitlen);
-
+#endif
     // Padding
         // 1 - Single 1 byte
     buffer[ctx->bitlen / 8] = 0x80;
@@ -133,8 +136,9 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
         ctx->bitlen += 8;
     }
 
+#ifdef DEBUG
     log_debug("Total bits after padding: %zu", ctx->bitlen);
-
+#endif
     // Appending the original length of the message as a 64-bit integer
     for (size_t i = 0; i < 8; i++) {
         buffer[ctx->bitlen / 8] = input_len >> (i * 8);
@@ -143,17 +147,19 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
 
 
     // Print the padded message in binary
+#ifdef DEBUG
     log_debug("Padded message in binary of length %zu in bits:", ctx->bitlen / 8);
     for (size_t i = 0; i < ctx->bitlen / 8; i++) {
         printf("%08b ", buffer[i]);
         if ((i + 1) % 8 == 0)
             printf("\n");
     }
+#endif 
     return 0;
 }
 
-
-uint32_t constructBlock(const unsigned char *buffer) {
+// Little endian 
+uint32_t constructBlockLE(const unsigned char *buffer) {
     uint32_t block;
     memset(&block, 0, sizeof(block));
     for (size_t i = 0; i < 4; i++){
@@ -162,13 +168,13 @@ uint32_t constructBlock(const unsigned char *buffer) {
     return block;
 }
 
-int md5Compression(t_md5_ctx *ctx) {
+void md5Compression(t_md5_ctx *ctx) {
     uint32_t M[16];
 
     memset(M, 0, sizeof(M));
     // Breaking our ctx->buffer into 16 32 bit words (4 bytes need to be combinted into 1 word)
     for (size_t i = 0; i < 16; i++) {
-        M[i] = constructBlock(&ctx->buffer[i * 4]);
+        M[i] = constructBlockLE(&ctx->buffer[i * 4]);
     }
 
     uint32_t a = ctx->state[0];
@@ -191,36 +197,38 @@ int md5Compression(t_md5_ctx *ctx) {
         uint32_t temp = d;
         d = c;
         c = b;
-        b = b + (ROTL((a + non_linear + M[ctx->md5const[j].rc] + ctx->md5const[j].ac), ctx->md5const[j].s));        // ?? BLOCKED
+        b = b + (ROTL((a + non_linear + M[ctx->md5const[j].rc] + ctx->md5const[j].ac), ctx->md5const[j].s));
         a = temp;
     }
     ctx->state[0] += a;
     ctx->state[1] += b;
     ctx->state[2] += c;
     ctx->state[3] += d;
-    return (0);
 }
 
-// int md5Final(t_md5_ctx *ctx) {
-//     printf("MD5 digest: ");
-//     for (size_t i = 0; i < 4; i++) {
-//         printf("%08x", ctx->state[i]);
-//     }
-//     printf("\n");
-//     return 0;
-// }   
-
-
-int md5Final(t_md5_ctx *ctx) {
-    printf("MD5 digest: ");
+void md5Final(t_md5_ctx *ctx, const t_options options, const char *input) {
+    memset(ctx->md5rslt, 0, sizeof(ctx->md5rslt));
+    size_t pos = 0;
     for (size_t i = 0; i < 4; i++) {
         uint32_t word = ctx->state[i];
         for (size_t b = 0; b < 4; b++) {
-            printf("%02x", (word >> (b * 8)) & 0xFF);
+            pos += sprintf(&ctx->md5rslt[pos], "%02x", (word >> (b * 8)) & 0xFF);
         }
     }
-    printf("\n");
-    return 0;
+    ctx->md5rslt[32] = '\0';
+
+    if (options.p) {
+        printf("(%s)= %s\n", input, ctx->md5rslt);
+    }
+    else if (options.q) {
+        printf("%s\n", ctx->md5rslt);
+    }
+    else if (options.r) {
+        printf(" %s\n", input);
+    }
+    else {
+        printf("MD5 (%s) = %s\n", input, ctx->md5rslt);
+    }
 }
 
 int md5(char *input, const t_options options)
@@ -228,8 +236,10 @@ int md5(char *input, const t_options options)
     t_md5_ctx ctx;
     md5Init(&ctx);
     log_info("MD5 function called");
+    log_debug("Input: %s", input);
     md5Update(&ctx, (const unsigned char *)input, strlen(input));
     md5Compression(&ctx);
-    md5Final(&ctx);
+    md5Final(&ctx, options, input);
+    free(input);
     return 0;
 }

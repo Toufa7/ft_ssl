@@ -14,7 +14,11 @@ SRC		=	./srcs/main.c\
 all	= $(NAME)
 
 $(NAME):
-	$(GCC) -DLOG_USE_COLOR  $(ASAN) $(SRC) -o $(NAME)
+	$(GCC)  $(ASAN) $(SRC) -o $(NAME)
+
+debug:
+	$(GCC) -DDEBUG -DLOG_USE_COLOR  $(ASAN) $(SRC) -o $(NAME)
+
 
 clean:
 	rm -rf $(NAME)
