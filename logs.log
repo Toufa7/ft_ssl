@@ -1,0 +1,11 @@
+09:37:11 [DEBUG[[./srcs/main.c:80:[Command provided: sha256
+09:37:11 [DEBUG[[./srcs/main.c:82:[Command found: sha256
+09:37:11 [INFO [[./srcs/main.c:101:[Command found: sha256 with option -q
+09:37:11 [INFO [[./srcs/ft_sha256.c:325:[sha256 function called
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:326:[Input: Is there some superiority of saying one phrase over another? The short answer to this question is yes, there is more barakah in saying the long version Assalamualaikum Warahmatullahi Wabarakatuh. In the detailed explanation we will explore the meaning and virtue/rewards of this phrase.
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:165:[Updating SHA256 with 286 bytes of data
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:169:[Processing chunk of size 64 bytes, offset: 0, data: Is there some superiority of saying one phrase over another? The short answer to this question is yes, there is more barakah in saying the long version Assalamualaikum Warahmatullahi Wabarakatuh. In the detailed explanation we will explore the meaning and virtue/rewards of this phrase.
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:169:[Processing chunk of size 64 bytes, offset: 64, data:  short answer to this question is yes, there is more barakah in saying the long version Assalamualaikum Warahmatullahi Wabarakatuh. In the detailed explanation we will explore the meaning and virtue/rewards of this phrase.
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:169:[Processing chunk of size 64 bytes, offset: 128, data: saying the long version Assalamualaikum Warahmatullahi Wabarakatuh. In the detailed explanation we will explore the meaning and virtue/rewards of this phrase.
+09:37:11 [DEBUG[[./srcs/ft_sha256.c:169:[Processing chunk of size 64 bytes, offset: 192, data: uh. In the detailed explanation we will explore the meaning and virtue/rewards of this phrase.
+fd611fffdc0742321a4a39fdce49e883649535693ecee9daa2902a10536faa8f

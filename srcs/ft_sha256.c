@@ -126,12 +126,70 @@ int sha256Init(t_sha256_ctx *ctx) {
 
 
 void sha256Pad(t_sha256_ctx *ctx) {
+    unsigned char *buffer = ctx->buffer;
+    uint64_t input_len = ctx->bytelen;
 
+    log_debug("Padding SHA256 with %zu bits of data", ctx->bitlen);
+    if (ctx->bitlen == 512) {
+        sha256Compression(ctx);
+        ctx->bitlen = 0;
+    }
+
+    size_t zeros = (447 - ctx->bitlen) % 512;
+    buffer[ctx->bitlen / 8] = 0x80;
+    ctx->bitlen += 8;
+
+    for (size_t i = 0; i < (zeros - 7) / 8; i++) {
+        if (ctx->bitlen == 512) {
+            sha256Compression(ctx);
+            ctx->bitlen = 0;
+        }
+        buffer[(ctx->bitlen / 8)] = 0x00;
+        ctx->bitlen += 8;
+    }
+
+    for (size_t i = 0; i < 8; i++) {
+        if (ctx->bitlen == 512) {
+            sha256Compression(ctx);
+            ctx->bitlen = 0;
+        }
+        buffer[ctx->bitlen / 8] = input_len >> ((7 - i) * 8);
+        ctx->bitlen += 8;
+    }
+    sha256Compression(ctx);
 }
+
+void sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len){
+    // Logging whether we're gonna chunk the data or not
+    log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Chunking data into 64-byte blocks" : "Data fits in a single block");
+    
+    ctx->bytelen += (uint64_t)len * 8;
+
+    size_t offset = 0;
+    while ((len - offset) * 8 > 512 - ctx->bitlen) {
+        size_t chunk_size = (512 - ctx->bitlen) / 8;
+        memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
+        log_debug("Processing chunk data: [%s]", &data[offset]);
+        ctx->bitlen += chunk_size * 8;
+        offset += chunk_size;
+        
+        log_debug("Current offset: %zu", offset * 8);
+        sha256Compression(ctx);
+        ctx->bitlen = 0;
+    }
+
+    memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], len - offset);
+    ctx->bitlen += (len - offset) * 8;
+}
+
+/*
 int sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len) {
     memcpy(ctx->buffer, data, len);
+
     unsigned char *buffer = ctx->buffer;
+    
     ctx->bitlen += (uint64_t)len * 8;
+    
     uint64_t input_len = ctx->bitlen;
 
 #ifdef DEBUG
@@ -182,6 +240,8 @@ int sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len) {
 #endif 
     return 0;
 }
+*/
+
 
 
 // Big endian
@@ -266,11 +326,13 @@ void sha256Final(t_sha256_ctx *ctx, const t_options options, const char *input) 
 int sha256(char *input, const t_options options)
 {
     t_sha256_ctx ctx;
-    sha256Init(&ctx);
     log_info("sha256 function called");
     log_debug("Input: %s", input);
+    sha256Init(&ctx);
     sha256Update(&ctx, (const unsigned char *)input, strlen(input));
-    sha256Compression(&ctx);
+    sha256Pad(&ctx);
+    // sha256Compression(&ctx);
     sha256Final(&ctx, options, input);
+    // free(input);
     return 0;
 }

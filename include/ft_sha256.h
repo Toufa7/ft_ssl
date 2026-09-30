@@ -29,8 +29,9 @@ typedef struct s_sha256_ctx {
 int         sha256(char *input, const t_options options);
 void        sha256Compression(t_sha256_ctx *ctx);
 uint32_t    constructBlockBE(const unsigned char *buffer);
-int         sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len);
-
+void        sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len);
+void        sha256Final(t_sha256_ctx *ctx, const t_options options, const char *input);
+void        sha256Pad(t_sha256_ctx *ctx);
 
 int sha256(char *input, const t_options options);
 
