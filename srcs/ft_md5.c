@@ -103,6 +103,61 @@ int md5Init(t_md5_ctx *ctx) {
     return 0;
 }
 
+
+void md5Pad(t_md5_ctx *ctx) {
+    unsigned char *buffer = ctx->buffer;
+    uint64_t input_len = ctx->bitlen;
+
+    log_debug("Padding MD5 with %zu bits of data", ctx->bitlen);
+    if (ctx->bitlen == 512) {
+        md5Compression(ctx);
+        ctx->bitlen = 0;
+    }
+
+    size_t zeros = (447 - ctx->bitlen) % 512;
+    buffer[ctx->bitlen / 8] = 0x80;
+    ctx->bitlen += 8;
+
+    for (size_t i = 0; i < (zeros - 7) / 8; i++) {
+        if (ctx->bitlen == 512) {
+            md5Compression(ctx);
+            ctx->bitlen = 0;
+        }
+        buffer[(ctx->bitlen / 8)] = 0x00;
+        ctx->bitlen += 8;
+    }
+
+    for (size_t i = 0; i < 8; i++) {
+        if (ctx->bitlen == 512) {
+            md5Compression(ctx);
+            ctx->bitlen = 0;
+        }
+        buffer[ctx->bitlen / 8] = input_len >> ((7 - i) * 8);
+        ctx->bitlen += 8;
+    }
+    md5Compression(ctx);
+}
+int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
+    log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Data exceeds buffer size, processing in chunks" : "Data fits in buffer, processing directly");
+    ctx->bytelen += (uint64_t)len * 8;
+
+    size_t offset = 0;
+    while ((len - offset) * 8 > 512 - ctx->bitlen) {
+        size_t chunk_size = (512 - ctx->bitlen) / 8;
+        memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
+        log_debug("Processing chunk data: [%s]", &data[offset]);
+        ctx->bitlen += chunk_size * 8;
+        offset += chunk_size;
+        md5Compression(ctx);
+        log_debug("Current offset: %zu", offset * 8);
+        ctx->bitlen = 0; // Reset bitlen after processing a chunk
+    }
+    memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], len - offset);
+    ctx->bitlen += (len - offset) * 8;
+    return 0;
+}
+
+/*
 int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
     memcpy(ctx->buffer, data, len);
     unsigned char *buffer = ctx->buffer;
@@ -157,6 +212,7 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
 #endif 
     return 0;
 }
+*/
 
 // Little endian 
 uint32_t constructBlockLE(const unsigned char *buffer) {
@@ -234,12 +290,13 @@ void md5Final(t_md5_ctx *ctx, const t_options options, const char *input) {
 int md5(char *input, const t_options options)
 {
     t_md5_ctx ctx;
-    md5Init(&ctx);
     log_info("MD5 function called");
     log_debug("Input: %s", input);
+    md5Init(&ctx);
     md5Update(&ctx, (const unsigned char *)input, strlen(input));
-    md5Compression(&ctx);
+    md5Pad(&ctx);
+    // md5Compression(&ctx);
     md5Final(&ctx, options, input);
-    free(input);
+    // free(input);
     return 0;
 }

@@ -182,68 +182,6 @@ void sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len){
     ctx->bitlen += (len - offset) * 8;
 }
 
-/*
-int sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len) {
-    memcpy(ctx->buffer, data, len);
-
-    unsigned char *buffer = ctx->buffer;
-    
-    ctx->bitlen += (uint64_t)len * 8;
-    
-    uint64_t input_len = ctx->bitlen;
-
-#ifdef DEBUG
-    log_debug("data=[%s]", data);
-    for (size_t i = 0; i < len; i++) {
-        printf("%08b ",data[i]);
-        if ((i + 1) % 4 == 0)
-            printf("\n");
-    }
-    printf("\n");
-#endif
-    size_t zeros = (447 - ctx->bitlen) % 512;
-#ifdef DEBUG
-    log_debug("Msg contain %zu bits, we will add %zu zeros to make it 448 bits", ctx->bitlen, zeros);
-
-    // Message input representation in bits that fits 64 bit
-    log_debug("%064lb", ctx->bitlen);
-#endif
-    // Padding
-        // 1 - Single 1 byte
-    buffer[ctx->bitlen / 8] = 0x80;
-    ctx->bitlen += 8;
-    
-        //2 - Append zeros 
-    for (size_t i = 0; i < (zeros - 7) / 8; i++) {
-        buffer[(ctx->bitlen / 8)] = 0x00;
-        ctx->bitlen += 8;
-    }
-
-#ifdef DEBUG
-    log_debug("Total bits after padding: %zu", ctx->bitlen);
-#endif
-    // Appending the original length of the message as a 64-bit integer in big endian
-    for (size_t i = 0; i < 8; i++) {
-        buffer[ctx->bitlen / 8] = input_len >> ((7 - i) * 8);
-        ctx->bitlen += 8;
-    }
-
-
-    // Print the padded message in binary
-#ifdef DEBUG
-    log_debug("Padded message in binary of length %zu in bits:", ctx->bitlen / 8);
-    for (size_t i = 0; i < ctx->bitlen / 8; i++) {
-        printf("%08b ", buffer[i]);
-        if ((i + 1) % 8 == 0)
-            printf("\n");
-    }
-#endif 
-    return 0;
-}
-*/
-
-
-
 // Big endian
 uint32_t constructBlockBE(const unsigned char *buffer) {
     uint32_t block;
