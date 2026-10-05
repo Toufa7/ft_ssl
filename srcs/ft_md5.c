@@ -1,4 +1,3 @@
-#include "../include/log.h"
 #include "../include/ft_md5.h"
 
 static const uint32_t g_md5[4] = {
@@ -103,18 +102,19 @@ int md5Init(t_md5_ctx *ctx) {
     return 0;
 }
 
-
 void md5Pad(t_md5_ctx *ctx) {
     unsigned char *buffer = ctx->buffer;
-    uint64_t input_len = ctx->bitlen;
+    uint64_t input_len = ctx->bytelen;
 
-    log_debug("Padding MD5 with %zu bits of data", ctx->bitlen);
     if (ctx->bitlen == 512) {
         md5Compression(ctx);
         ctx->bitlen = 0;
     }
 
     size_t zeros = (447 - ctx->bitlen) % 512;
+#ifdef DEBUG
+    log_debug("Padding MD5 with %zu bits of data, zeros to be added: %zu", ctx->bitlen, zeros);
+#endif
     buffer[ctx->bitlen / 8] = 0x80;
     ctx->bitlen += 8;
 
@@ -132,87 +132,37 @@ void md5Pad(t_md5_ctx *ctx) {
             md5Compression(ctx);
             ctx->bitlen = 0;
         }
-        buffer[ctx->bitlen / 8] = input_len >> ((7 - i) * 8);
+        buffer[ctx->bitlen / 8] = input_len >> (i * 8);
         ctx->bitlen += 8;
     }
     md5Compression(ctx);
 }
+
 int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
+#ifdef DEBUG
     log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Data exceeds buffer size, processing in chunks" : "Data fits in buffer, processing directly");
+#endif
     ctx->bytelen += (uint64_t)len * 8;
 
     size_t offset = 0;
     while ((len - offset) * 8 > 512 - ctx->bitlen) {
         size_t chunk_size = (512 - ctx->bitlen) / 8;
         memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
-        log_debug("Processing chunk data: [%s]", &data[offset]);
+#ifdef DEBUG
+        log_debug("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
+#endif
         ctx->bitlen += chunk_size * 8;
         offset += chunk_size;
         md5Compression(ctx);
-        log_debug("Current offset: %zu", offset * 8);
-        ctx->bitlen = 0; // Reset bitlen after processing a chunk
+#ifdef DEBUG
+        log_debug("Current offset: %zu, bitlen: %llu, bytelen: %llu", offset, ctx->bitlen, ctx->bytelen);
+#endif
+        ctx->bitlen = 0;
     }
     memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], len - offset);
     ctx->bitlen += (len - offset) * 8;
     return 0;
 }
-
-/*
-int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
-    memcpy(ctx->buffer, data, len);
-    unsigned char *buffer = ctx->buffer;
-    ctx->bitlen += (uint64_t)len * 8;
-    uint64_t input_len = ctx->bitlen;
-
-#ifdef DEBUG
-    log_debug("data=[%s]", data);
-    for (size_t i = 0; i < len; i++) {
-        printf("%08b ",data[i]);
-        if ((i + 1) % 4 == 0)
-            printf("\n");
-    }
-    printf("\n");
-#endif
-    size_t zeros = (447 - ctx->bitlen) % 512;
-#ifdef DEBUG
-    log_debug("Msg contain %zu bits, we will add %zu zeros to make it 448 bits", ctx->bitlen, zeros);
-
-    // Message input representation in bits that fits 64 bit
-    log_debug("%064lb", ctx->bitlen);
-#endif
-    // Padding
-        // 1 - Single 1 byte
-    buffer[ctx->bitlen / 8] = 0x80;
-    ctx->bitlen += 8;
-    
-        //2 - Append zeros 
-    for (size_t i = 0; i < (zeros - 7) / 8; i++) {
-        buffer[(ctx->bitlen / 8)] = 0x00;
-        ctx->bitlen += 8;
-    }
-
-#ifdef DEBUG
-    log_debug("Total bits after padding: %zu", ctx->bitlen);
-#endif
-    // Appending the original length of the message as a 64-bit integer
-    for (size_t i = 0; i < 8; i++) {
-        buffer[ctx->bitlen / 8] = input_len >> (i * 8);
-        ctx->bitlen += 8;
-    }
-
-
-    // Print the padded message in binary
-#ifdef DEBUG
-    log_debug("Padded message in binary of length %zu in bits:", ctx->bitlen / 8);
-    for (size_t i = 0; i < ctx->bitlen / 8; i++) {
-        printf("%08b ", buffer[i]);
-        if ((i + 1) % 8 == 0)
-            printf("\n");
-    }
-#endif 
-    return 0;
-}
-*/
 
 // Little endian 
 uint32_t constructBlockLE(const unsigned char *buffer) {
@@ -262,41 +212,18 @@ void md5Compression(t_md5_ctx *ctx) {
     ctx->state[3] += d;
 }
 
-void md5Final(t_md5_ctx *ctx, const t_options options, const char *input) {
-    memset(ctx->md5rslt, 0, sizeof(ctx->md5rslt));
-    size_t pos = 0;
-    for (size_t i = 0; i < 4; i++) {
-        uint32_t word = ctx->state[i];
-        for (size_t b = 0; b < 4; b++) {
-            pos += sprintf(&ctx->md5rslt[pos], "%02x", (word >> (b * 8)) & 0xFF);
-        }
-    }
-    ctx->md5rslt[32] = '\0';
-
-    if (options.p) {
-        printf("(%s)= %s\n", input, ctx->md5rslt);
-    }
-    else if (options.q) {
-        printf("%s\n", ctx->md5rslt);
-    }
-    else if (options.r) {
-        printf(" %s\n", input);
-    }
-    else {
-        printf("MD5 (%s) = %s\n", input, ctx->md5rslt);
-    }
-}
-
-int md5(char *input, const t_options options)
+void md5(const char *input, size_t len, const char *label, bool is_string, const t_options options, bool is_file)
 {
     t_md5_ctx ctx;
-    log_info("MD5 function called");
-    log_debug("Input: %s", input);
     md5Init(&ctx);
-    md5Update(&ctx, (const unsigned char *)input, strlen(input));
+    md5Update(&ctx, (const unsigned char *)input, len);
     md5Pad(&ctx);
-    // md5Compression(&ctx);
-    md5Final(&ctx, options, input);
-    // free(input);
-    return 0;
+    size_t pos = 0;
+    for (size_t i = 0; i < 4; i++) {
+        uint32_t word = ctx.state[i];
+        for (size_t b = 0; b < 4; b++) {
+            pos += sprintf(&ctx.md5rslt[pos], "%02x", (word >> (b * 8)) & 0xFF);
+        }
+    }
+    printHash("MD5", ctx.md5rslt, is_string, options, is_file, label);
 }

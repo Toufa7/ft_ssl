@@ -1,5 +1,4 @@
 #include "../include/ft_sha256.h"
-#include "../include/log.h"
 
 
 /*
@@ -129,7 +128,7 @@ void sha256Pad(t_sha256_ctx *ctx) {
     unsigned char *buffer = ctx->buffer;
     uint64_t input_len = ctx->bytelen;
 
-    log_debug("Padding SHA256 with %zu bits of data", ctx->bitlen);
+    //log_debug("Padding SHA256 with %zu bits of data", ctx->bitlen);
     if (ctx->bitlen == 512) {
         sha256Compression(ctx);
         ctx->bitlen = 0;
@@ -160,20 +159,24 @@ void sha256Pad(t_sha256_ctx *ctx) {
 }
 
 void sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len){
-    // Logging whether we're gonna chunk the data or not
+#ifdef DEBUG
     log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Chunking data into 64-byte blocks" : "Data fits in a single block");
-    
+#endif
     ctx->bytelen += (uint64_t)len * 8;
 
     size_t offset = 0;
     while ((len - offset) * 8 > 512 - ctx->bitlen) {
         size_t chunk_size = (512 - ctx->bitlen) / 8;
         memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
-        log_debug("Processing chunk data: [%s]", &data[offset]);
+#ifdef DEBUG
+        log_debug("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
+#endif
         ctx->bitlen += chunk_size * 8;
         offset += chunk_size;
         
+#ifdef DEBUG
         log_debug("Current offset: %zu", offset * 8);
+#endif
         sha256Compression(ctx);
         ctx->bitlen = 0;
     }
@@ -236,41 +239,14 @@ void sha256Compression(t_sha256_ctx *ctx) {
     ctx->state[7] += h;
 }
 
-void sha256Final(t_sha256_ctx *ctx, const t_options options, const char *input) {
-    memset(ctx->sha256rslt, 0, sizeof(ctx->sha256rslt));
-    size_t pos = 0;
-    for (size_t i = 0; i < 8; i++) {
-        uint32_t word = ctx->state[i];
-        for (size_t b = 0; b < 4; b++) {
-            pos += sprintf(&ctx->sha256rslt[pos], "%02x", (word >> ((3 - b) * 8)) & 0xFF);
-        }
-    }
-    ctx->sha256rslt[64] = '\0';
-
-    if (options.p) {
-        printf("(%s)= %s\n", input, ctx->sha256rslt);
-    }
-    else if (options.q) {
-        printf("%s\n", ctx->sha256rslt);
-    }
-    else if (options.r) {
-        printf(" %s\n", input);
-    }
-    else {
-        printf("sha256 (%s) = %s\n", input, ctx->sha256rslt);
-    }
-}
-
-int sha256(char *input, const t_options options)
+void sha256(const char *input, size_t len, const char *label, bool is_string, const t_options options, bool is_file)
 {
     t_sha256_ctx ctx;
-    log_info("sha256 function called");
-    log_debug("Input: %s", input);
     sha256Init(&ctx);
     sha256Update(&ctx, (const unsigned char *)input, strlen(input));
     sha256Pad(&ctx);
-    // sha256Compression(&ctx);
-    sha256Final(&ctx, options, input);
-    // free(input);
-    return 0;
+    for (size_t i = 0; i < 8; i++) {
+        snprintf(&ctx.sha256rslt[i * 8], 9, "%08x", ctx.state[i]);
+    }
+    printHash("SHA256", ctx.sha256rslt, is_string, options, is_file, label);
 }

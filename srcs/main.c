@@ -10,99 +10,175 @@ static const t_commands g_commands[] = {
 };
 
 static const t_commands *findCommand(char *arg){
-    if (strcmp(arg, "md5") == 0)
-        return &g_commands[0];
-    else if (strcmp(arg, "sha256") == 0)
-        return &g_commands[1];
-    else
-        return NULL;
-}
-
-// TODO: think about we could combine a lot of options
-static const t_options findOption(char *option)
-{
-    t_options opts = {0};
-    if (strcmp(option, "-p") == 0) {
-        opts.p = true;
-        // Reading from stdin, print the input alongside the hash
-        // ("42 is nice")= 35f1d6de0302e2086a4e472266efb3a9
-    }
-    if (strcmp(option, "-q") == 0) {
-        opts.q = true;
-        // Quite mode means print only the hash no more no less
-    }
-    if (strcmp(option, "-r") == 0) {
-        opts.r = true;
-        
-    }
-    if (strcmp(option, "-s") == 0) {
-        opts.s = true;
-        // Hashing the input string next to
-    }
-    return opts;
-}
-
-char *getInput(int ac, char *av[], const t_options options)
-{
-    log_debug("Getting input with options: p=%d, q=%d, r=%d, s=%d", options.p, options.q, options.r, options.s);
-    if (options.p) {
-        // Read from stdin
-        char *input = NULL;
-        size_t len = 0;
-        ssize_t read;
-        while ((read = getline(&input, &len, stdin)) != -1) {
-            // TODO: Check wether we should keep the newline or not
-            if (input[read - 1] == '\n') {
-                input[read - 1] = '\0';
-            }
-            return input;
+    for (size_t i = 0; g_commands[i].name != NULL; i++) {
+        if (strcmp(arg, g_commands[i].name) == 0) {
+            return &g_commands[i];
         }
-    }
-    else if (options.s) {
-        return av[3];
-    }
-    else {
-        return av[3];
     }
     return NULL;
 }
 
+// TODO: think about we could combine a lot of options
+t_options findOption(char *option)
+{
+    t_options opts = {0};
+    if (strcmp(option, "-p") == 0) opts.p = true;
+    else if (strcmp(option, "-q") == 0) opts.q = true;
+    else if (strcmp(option, "-r") == 0) opts.r = true;
+    else if (strcmp(option, "-s") == 0) opts.s = true;
+    else opts.x = true;
+    return opts;
+}
+
+t_options parseArgs(int ac, char *av[], int start, t_target *targets) {
+    t_options opts = {0};
+    opts.targets = targets;
+    opts.target_count = 0;
+    bool option_mode = true;
+    int i = start;
+
+    while (i < ac) {
+#ifdef DEBUG
+        log_debug("Parsing argument: [%s]", av[i]);
+#endif
+        if (option_mode && av[i][0] == '-') {
+            t_options _opts = findOption(av[i]);
+#ifdef DEBUG
+            log_debug("Option found: [%s]= p: %d, q: %d, r: %d, s: %d, x: %d", av[i], _opts.p, _opts.q, _opts.r, _opts.s, _opts.x);
+#endif
+            opts.p |= _opts.p;
+            opts.q |= _opts.q;
+            opts.r |= _opts.r;
+            if (_opts.s) {
+                if (i + 1 < ac) {
+#ifdef DEBUG
+                    log_debug("Option -s found with argument: %s", av[i + 1]);
+#endif
+                    opts.targets[opts.target_count].is_string = true;
+                    opts.targets[opts.target_count].string = av[i + 1];
+                    opts.target_count++;
+                    i++;
+                } else {
+                    fprintf(stderr, "ft_ssl: option -s requires an argument\n");
+                    break;
+                }
+            }
+            else if (_opts.x) {
+                fprintf(stderr, "ft_ssl: illegal option -- %s\n", av[i]);
+            }
+            i++;
+            continue;
+        }
+        else
+        {
+            option_mode = false;
+            opts.targets[opts.target_count].is_string = false;
+            opts.targets[opts.target_count].string = av[i];
+            opts.target_count++;
+            i++;
+        }
+    }
+    return opts;
+}
+
+static char *getInput(size_t *len) {
+    size_t bufsize = 1024;
+    char *buffer = malloc(bufsize);
+    if (!buffer) {
+#ifdef DEBUG
+        log_error("ft_ssl: Memory allocation failed");
+#endif
+        return NULL;
+    }
+
+    size_t n = 0;
+    while ((n = fread(buffer + *len, 1, bufsize - *len, stdin)) > 0) {
+        *len += n;
+        if (*len == bufsize) {
+            bufsize *= 2;
+            char *new_buffer = realloc(buffer, bufsize);
+            if (!new_buffer) {
+#ifdef DEBUG
+                log_error("ft_ssl: Memory allocation failed");
+#endif
+                free(buffer);
+                return NULL;
+            }
+            buffer = new_buffer;
+        }
+    }
+    buffer[*len] = '\0';
+    return buffer;
+}
+
+void runHash(const t_commands *cmd, const t_options options) {
+    if (options.p || options.target_count == 0) {
+        size_t len = 0;
+        char *input = getInput(&len);
+        if (input) {
+            // Label only used for printing the hash result (display only) (input)= hash 
+            char *label = strdup(input);
+            if (len > 0 && label[len - 1] == '\n') {
+                label[len - 1] = '\0';
+            }
+            cmd->hash_func(input, len, label, false, options, true);
+            free(input);
+            free(label);
+        }
+    }
+
+    for (int i = 0; i < options.target_count; i++) {
+        t_target targets = options.targets[i];
+#ifdef DEBUG
+        log_debug("Processing target: [%s] which is %s", targets.string, targets.is_string ? "a string" : "a file");
+#endif
+        if (targets.is_string) {
+            cmd->hash_func(targets.string, strlen(targets.string), targets.string, true, options, false);
+        }
+        else
+        {
+            FILE *file = fopen(targets.string, "rb");
+            if (!file) {
+                fprintf(stderr, "ft_ssl: %s: No such file or directory\n", targets.string);
+                continue;
+            }
+            fseek(file, 0, SEEK_END);
+            long len = ftell(file);
+            fseek(file, 0, SEEK_SET);
+            char *buffer = malloc(len + 1);
+            if (!buffer) {
+#ifdef DEBUG
+                log_error("ft_ssl: Memory allocation failed");
+#endif            
+                fclose(file);
+                continue;
+            }
+            fread(buffer, 1, len, file);
+            buffer[len] = '\0';
+            fclose(file);
+
+            cmd->hash_func(buffer, len, targets.string, false, options, false);
+            free(buffer);
+        }
+    }
+}
+
 int main(int ac, char *av[])
 {
-    if (ac < 2)
-    {
-        log_error("No command provided");
-        log_info("Usage: ./ft_ssl <command> [options] [input]");
+    if (ac < 2) {
+        fprintf(stderr, "Usage: ./ft_ssl <command> [options] [input]\n");
         return 1;
     }
     else
     {
-        log_debug("Command provided: %s", av[1]);
         const t_commands *cmd = findCommand(av[1]);
-        log_debug("Command found: %s", cmd ? cmd->name : "NULL");
         if (cmd == NULL) {
-            log_error("Invalid command provided: %s", av[1]);
+            fprintf(stderr, "ft_ssl: invalid command provided: %s\n", av[1]);
             return 1;
         }
-        bool noOption = (av[2] == NULL) ? true : (av[2][0] == '-' ? false : true);
-        if (noOption) {
-            log_info("No options provided, calling the function with default options");
-            return (cmd->hash_func(av[2], (t_options){0}));
-        }
-        t_options opts = findOption(av[2]);
-        // TODO: We could have no options provided, but we should still call the function with default options
-        if (opts.p == false && opts.q == false && opts.r == false && opts.s == false)
-        {
-            log_error("Invalid option provided");
-            return 1;
-        }
-        else
-        {
-            log_info("Command found: %s with option %s", cmd->name, av[2]);
-            // char *input = getInput(ac, av, opts);
-            return (cmd->hash_func(av[3], opts));
-        }
+        t_target targets[ac > 2 ? ac - 2 : 1    ];
+        t_options _opts = parseArgs(ac, av, 2, targets);
+        runHash(cmd, _opts);
+        return 0;
     }
-cleanup:
-    return 0;
 }

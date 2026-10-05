@@ -2,7 +2,7 @@ NAME	= ft_ssl
 
 GCC		= gcc
 
-CFLAGS	= -Wall -Wextra -Werror 
+CFLAGS	= -Wall -Wextra -Werror -O0 -g3
 
 ASAN	= -fsanitize=address
 
@@ -10,6 +10,7 @@ SRC		=	./srcs/main.c\
 			./srcs/ft_md5.c\
 			./srcs/ft_sha256.c\
 			./utils/log.c\
+			./srcs/ft_utils.c\
 
 all	= $(NAME)
 

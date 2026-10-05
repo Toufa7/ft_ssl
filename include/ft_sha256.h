@@ -2,6 +2,7 @@
 #define FT_SHA256_H
 
 #include "./ft_ssl.h"
+#include "./ft_utils.h"
 
 
 // TODO: Make sure to not pass 0 as rotation count
@@ -26,14 +27,13 @@ typedef struct s_sha256_ctx {
 }  t_sha256_ctx;
 
 
-int         sha256(char *input, const t_options options);
+void        sha256(const char *input, size_t len, const char *label, bool is_string, const t_options options, bool is_file);
 void        sha256Compression(t_sha256_ctx *ctx);
 uint32_t    constructBlockBE(const unsigned char *buffer);
 void        sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len);
 void        sha256Final(t_sha256_ctx *ctx, const t_options options, const char *input);
 void        sha256Pad(t_sha256_ctx *ctx);
 
-int sha256(char *input, const t_options options);
 
 
 #endif
