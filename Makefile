@@ -12,14 +12,24 @@ SRC		=	./srcs/main.c\
 			./utils/log.c\
 			./srcs/ft_utils.c\
 
-all	= $(NAME)
+OBJ		= $(SRC:.c=.o)
 
-$(NAME):
-	$(GCC)  $(ASAN) $(SRC) -o $(NAME)
+BONUS	= $(SRC)\
+			./srcs/ft_sha1.c\
+
+BONUS_OBJ		= $(BONUS:.c=.o)
+
+all: $(NAME)
+
+$(NAME): $(OBJ)
+	$(GCC) $(CFLAGS) $(ASAN) $(SRC) -o $(NAME)
+
+bonus:
+	$(GCC) -DBONUS $(BONUS) -o $(NAME)_bonus
+
 
 debug:
 	$(GCC) -DDEBUG -DLOG_USE_COLOR  $(ASAN) $(SRC) -o $(NAME)
-
 
 clean:
 	rm -rf $(NAME)

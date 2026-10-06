@@ -12,10 +12,10 @@
 
 #define ROTL(x, c) (((x) << (c)) | ((x) >> (32 - (c)))) // Make sure to not pass 0
 
-u_int32_t roundF(uint32_t x, uint32_t y, uint32_t z);
-u_int32_t roundG(uint32_t x, uint32_t y, uint32_t z);
-u_int32_t roundH(uint32_t x, uint32_t y, uint32_t z);
-u_int32_t roundI(uint32_t x, uint32_t y, uint32_t z);
+u_int32_t md5roundF(uint32_t x, uint32_t y, uint32_t z);
+u_int32_t md5roundG(uint32_t x, uint32_t y, uint32_t z);
+u_int32_t md5roundH(uint32_t x, uint32_t y, uint32_t z);
+u_int32_t md5roundI(uint32_t x, uint32_t y, uint32_t z);
 
 typedef struct s_md5_const
 {

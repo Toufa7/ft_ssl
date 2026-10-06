@@ -243,7 +243,7 @@ void sha256(const char *input, size_t len, const char *label, bool is_string, co
 {
     t_sha256_ctx ctx;
     sha256Init(&ctx);
-    sha256Update(&ctx, (const unsigned char *)input, strlen(input));
+    sha256Update(&ctx, (const unsigned char *)input, len);
     sha256Pad(&ctx);
     for (size_t i = 0; i < 8; i++) {
         snprintf(&ctx.sha256rslt[i * 8], 9, "%08x", ctx.state[i]);

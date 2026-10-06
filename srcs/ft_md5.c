@@ -82,16 +82,16 @@ static const t_md5_const g_md5const[64] = {
     {0xeb86d391, 21, 9}
 };
 
-u_int32_t roundF(uint32_t x, uint32_t y, uint32_t z) {
+u_int32_t md5roundF(uint32_t x, uint32_t y, uint32_t z) {
     return ((x & y) | (~x & z));
 }
-u_int32_t roundG(uint32_t x, uint32_t y, uint32_t z) {
+u_int32_t md5roundG(uint32_t x, uint32_t y, uint32_t z) {
     return ((x & z) | (y & ~z));
 }
-u_int32_t roundH(uint32_t x, uint32_t y, uint32_t z) {
+u_int32_t md5roundH(uint32_t x, uint32_t y, uint32_t z) {
     return (x ^ y ^ z);
 }
-u_int32_t roundI(uint32_t x, uint32_t y, uint32_t z) {
+u_int32_t md5roundI(uint32_t x, uint32_t y, uint32_t z) {
     return (y ^ (x | ~z));
 }
 
@@ -191,13 +191,13 @@ void md5Compression(t_md5_ctx *ctx) {
     for (size_t j = 0; j < 64; j++) {
         uint32_t    non_linear;
         if (j < 16) {
-            non_linear = roundF(b, c, d);
+            non_linear = md5roundF(b, c, d);
         } else if (j < 32) {
-            non_linear = roundG(b, c, d);
+            non_linear = md5roundG(b, c, d);
         } else if (j < 48) {
-            non_linear = roundH(b, c, d);
+            non_linear = md5roundH(b, c, d);
         } else {
-            non_linear = roundI(b, c, d);
+            non_linear = md5roundI(b, c, d);
         }
         // B gets the new value of A, C gets the old value of B, D gets the old value of C, and A gets the new value of D
         uint32_t temp = d;

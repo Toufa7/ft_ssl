@@ -2,10 +2,14 @@
 #include "../include/log.h"
 #include "../include/ft_md5.h"
 #include "../include/ft_sha256.h"
+#include "../include/ft_sha1.h"
 
 static const t_commands g_commands[] = {
     {"md5", {0}, md5},
     {"sha256", {0}, sha256},
+#ifdef BONUS
+    {"sha1", {0}, sha1},
+#endif
     {NULL, {0}, NULL}
 };
 
@@ -18,7 +22,6 @@ static const t_commands *findCommand(char *arg){
     return NULL;
 }
 
-// TODO: think about we could combine a lot of options
 t_options findOption(char *option)
 {
     t_options opts = {0};
@@ -163,9 +166,35 @@ void runHash(const t_commands *cmd, const t_options options) {
     }
 }
 
+
+int getCmdFromSTDIN() {
+    char command[256];
+    if (fgets(command, sizeof(command), stdin) == NULL) {
+        fprintf(stderr, "ft_ssl: failed to read command from stdin\n");
+        return 1;
+    }
+    size_t len = strlen(command);
+    if (len > 0 && command[len - 1] == '\n') {
+        command[len - 1] = '\0';
+    }
+
+    const t_commands *cmd = findCommand(command);
+    if (cmd == NULL) {
+        fprintf(stderr, "ft_ssl: invalid command provided: %s\n", command);
+        return 1;
+    }
+
+    t_options _opts = {0};
+    runHash(cmd, _opts);
+    return 0;
+}
+
 int main(int ac, char *av[])
 {
     if (ac < 2) {
+#ifdef BONUS
+        return getCmdFromSTDIN();
+#endif
         fprintf(stderr, "Usage: ./ft_ssl <command> [options] [input]\n");
         return 1;
     }
