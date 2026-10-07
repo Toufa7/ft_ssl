@@ -3,12 +3,14 @@
 #include "../include/ft_md5.h"
 #include "../include/ft_sha256.h"
 #include "../include/ft_sha1.h"
+#include "../include/ft_sha512.h"
 
 static const t_commands g_commands[] = {
     {"md5", {0}, md5},
     {"sha256", {0}, sha256},
 #ifdef BONUS
     {"sha1", {0}, sha1},
+    {"sha512", {0}, sha512},
 #endif
     {NULL, {0}, NULL}
 };

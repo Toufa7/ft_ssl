@@ -2,7 +2,7 @@ NAME	= ft_ssl
 
 GCC		= gcc
 
-CFLAGS	= -Wall -Wextra -Werror -O0 -g3
+CFLAGS	= -Wall -Wextra -Werror -g3 -O0 -fno-omit-frame-pointer
 
 ASAN	= -fsanitize=address
 
@@ -16,6 +16,7 @@ OBJ		= $(SRC:.c=.o)
 
 BONUS	= $(SRC)\
 			./srcs/ft_sha1.c\
+			./srcs/ft_sha512.c\
 
 BONUS_OBJ		= $(BONUS:.c=.o)
 
