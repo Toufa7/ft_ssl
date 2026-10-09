@@ -128,7 +128,7 @@ void sha256Pad(t_sha256_ctx *ctx) {
     unsigned char *buffer = ctx->buffer;
     uint64_t input_len = ctx->bytelen;
 
-    //log_debug("Padding SHA256 with %zu bits of data", ctx->bitlen);
+    //printf("Padding SHA256 with %zu bits of data", ctx->bitlen);
     if (ctx->bitlen == 512) {
         sha256Compression(ctx);
         ctx->bitlen = 0;
@@ -160,7 +160,7 @@ void sha256Pad(t_sha256_ctx *ctx) {
 
 void sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len){
 #ifdef DEBUG
-    log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Chunking data into 64-byte blocks" : "Data fits in a single block");
+    printf("%s", (len * 8 > 512 - ctx->bitlen) ? "Chunking data into 64-byte blocks" : "Data fits in a single block");
 #endif
     ctx->bytelen += (uint64_t)len * 8;
 
@@ -169,13 +169,13 @@ void sha256Update(t_sha256_ctx *ctx, const unsigned char *data, size_t len){
         size_t chunk_size = (512 - ctx->bitlen) / 8;
         memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
 #ifdef DEBUG
-        log_debug("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
+        printf("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
 #endif
         ctx->bitlen += chunk_size * 8;
         offset += chunk_size;
         
 #ifdef DEBUG
-        log_debug("Current offset: %zu", offset * 8);
+        printf("Current offset: %zu", offset * 8);
 #endif
         sha256Compression(ctx);
         ctx->bitlen = 0;

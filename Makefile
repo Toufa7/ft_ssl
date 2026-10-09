@@ -1,41 +1,43 @@
-NAME	= ft_ssl
+NAME	=	ft_ssl
 
-GCC		= gcc
+NAME_	=	ft_ssl_bonus
 
-CFLAGS	= -Wall -Wextra -Werror -g3 -O0 -fno-omit-frame-pointer
+GCC		=	gcc
 
-ASAN	= -fsanitize=address
+CFLAGS	=	-Wall -Wextra -Werror -g3
+
+ASAN	= 	-fsanitize=address
 
 SRC		=	./srcs/main.c\
 			./srcs/ft_md5.c\
 			./srcs/ft_sha256.c\
-			./utils/log.c\
 			./srcs/ft_utils.c\
 
-OBJ		= $(SRC:.c=.o)
+OBJ		= 	$(SRC:.c=.o)
 
-BONUS	= $(SRC)\
+BONUS	=	$(SRC)\
 			./srcs/ft_sha1.c\
 			./srcs/ft_sha512.c\
 
-BONUS_OBJ		= $(BONUS:.c=.o)
+BONUS_OBJ=	$(BONUS:.c=.o)
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(GCC) $(CFLAGS) $(ASAN) $(SRC) -o $(NAME)
+		$(GCC) $(CFLAGS) $(ASAN) $(SRC) -o $(NAME)
 
 bonus:
 	$(GCC) -DBONUS $(BONUS) -o $(NAME)_bonus
 
-
 debug:
-	$(GCC) -DDEBUG -DLOG_USE_COLOR  $(ASAN) $(SRC) -o $(NAME)
+	$(GCC) -DDEBUG $(ASAN) $(SRC) -o $(NAME)
 
 clean:
-	rm -rf $(NAME)
+	rm -rf $(OBJ) $(BONUS_OBJ)
 
-re:
-	clean all
+fclean: clean
+	rm -rf $(NAME) $(NAME_)
 
-.PHONY: all re clean
+re: clean all
+
+.PHONY: all re clean fclean 

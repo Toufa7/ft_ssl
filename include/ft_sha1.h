@@ -3,7 +3,6 @@
 
 #include "./ft_ssl.h"
 #include "./ft_utils.h"
-#include "./log.h"
 
 #define F(x, y, z) ((x & y) | (~x & z))
 #define G(x, y, z) ((x & z) | (y & ~z))

@@ -1,5 +1,4 @@
 #include "../include/ft_ssl.h"
-#include "../include/log.h"
 #include "../include/ft_md5.h"
 #include "../include/ft_sha256.h"
 #include "../include/ft_sha1.h"
@@ -44,12 +43,12 @@ t_options parseArgs(int ac, char *av[], int start, t_target *targets) {
 
     while (i < ac) {
 #ifdef DEBUG
-        log_debug("Parsing argument: [%s]", av[i]);
+        printf("Parsing argument: [%s]", av[i]);
 #endif
         if (option_mode && av[i][0] == '-') {
             t_options _opts = findOption(av[i]);
 #ifdef DEBUG
-            log_debug("Option found: [%s]= p: %d, q: %d, r: %d, s: %d, x: %d", av[i], _opts.p, _opts.q, _opts.r, _opts.s, _opts.x);
+            printf("Option found: [%s]= p: %d, q: %d, r: %d, s: %d, x: %d", av[i], _opts.p, _opts.q, _opts.r, _opts.s, _opts.x);
 #endif
             opts.p |= _opts.p;
             opts.q |= _opts.q;
@@ -57,7 +56,7 @@ t_options parseArgs(int ac, char *av[], int start, t_target *targets) {
             if (_opts.s) {
                 if (i + 1 < ac) {
 #ifdef DEBUG
-                    log_debug("Option -s found with argument: %s", av[i + 1]);
+                    printf("Option -s found with argument: %s", av[i + 1]);
 #endif
                     opts.targets[opts.target_count].is_string = true;
                     opts.targets[opts.target_count].string = av[i + 1];
@@ -91,7 +90,7 @@ static char *getInput(size_t *len) {
     char *buffer = malloc(bufsize);
     if (!buffer) {
 #ifdef DEBUG
-        log_error("ft_ssl: Memory allocation failed");
+        printf("ft_ssl: Memory allocation failed");
 #endif
         return NULL;
     }
@@ -104,7 +103,7 @@ static char *getInput(size_t *len) {
             char *new_buffer = realloc(buffer, bufsize);
             if (!new_buffer) {
 #ifdef DEBUG
-                log_error("ft_ssl: Memory allocation failed");
+                printf("ft_ssl: Memory allocation failed");
 #endif
                 free(buffer);
                 return NULL;
@@ -116,7 +115,7 @@ static char *getInput(size_t *len) {
     return buffer;
 }
 
-void runHash(const t_commands *cmd, const t_options options) {
+static void runHash(const t_commands *cmd, const t_options options) {
     if (options.p || options.target_count == 0) {
         size_t len = 0;
         char *input = getInput(&len);
@@ -135,7 +134,7 @@ void runHash(const t_commands *cmd, const t_options options) {
     for (int i = 0; i < options.target_count; i++) {
         t_target targets = options.targets[i];
 #ifdef DEBUG
-        log_debug("Processing target: [%s] which is %s", targets.string, targets.is_string ? "a string" : "a file");
+        printf("Processing target: [%s] which is %s", targets.string, targets.is_string ? "a string" : "a file");
 #endif
         if (targets.is_string) {
             cmd->hash_func(targets.string, strlen(targets.string), targets.string, true, options, false);
@@ -153,7 +152,7 @@ void runHash(const t_commands *cmd, const t_options options) {
             char *buffer = malloc(len + 1);
             if (!buffer) {
 #ifdef DEBUG
-                log_error("ft_ssl: Memory allocation failed");
+                printf("ft_ssl: Memory allocation failed");
 #endif            
                 fclose(file);
                 continue;
@@ -203,11 +202,11 @@ int main(int ac, char *av[])
     else
     {
         const t_commands *cmd = findCommand(av[1]);
-        if (cmd == NULL) {
+        if (!cmd) {
             fprintf(stderr, "ft_ssl: invalid command provided: %s\n", av[1]);
             return 1;
         }
-        t_target targets[ac > 2 ? ac - 2 : 1    ];
+        t_target targets[ac > 2 ? ac - 2 : 1];
         t_options _opts = parseArgs(ac, av, 2, targets);
         runHash(cmd, _opts);
         return 0;

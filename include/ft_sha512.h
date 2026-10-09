@@ -4,8 +4,6 @@
 #include "./ft_ssl.h"
 #include "./ft_utils.h"
 
-
-// TODO: Make sure to not pass 0 as rotation count
 #define ROTL_(x, c)  (((x) << (c)) | ((x) >> (64 - (c))))    // circular left shift
 #define ROTR_(x, c)  (((x) >> (c)) | ((x) << (64 - (c))))    // circular right shift
 #define SHR_(x, c)   ((x) >> (c))                            // right shift operation where c 0 <= x < 64

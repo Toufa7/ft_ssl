@@ -113,7 +113,7 @@ void md5Pad(t_md5_ctx *ctx) {
 
     size_t zeros = (447 - ctx->bitlen) % 512;
 #ifdef DEBUG
-    log_debug("Padding MD5 with %zu bits of data, zeros to be added: %zu", ctx->bitlen, zeros);
+    printf("Padding MD5 with %zu bits of data, zeros to be added: %zu", ctx->bitlen, zeros);
 #endif
     buffer[ctx->bitlen / 8] = 0x80;
     ctx->bitlen += 8;
@@ -140,7 +140,7 @@ void md5Pad(t_md5_ctx *ctx) {
 
 int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
 #ifdef DEBUG
-    log_info("%s", (len * 8 > 512 - ctx->bitlen) ? "Data exceeds buffer size, processing in chunks" : "Data fits in buffer, processing directly");
+    printf("%s", (len * 8 > 512 - ctx->bitlen) ? "Data exceeds buffer size, processing in chunks" : "Data fits in buffer, processing directly");
 #endif
     ctx->bytelen += (uint64_t)len * 8;
 
@@ -149,13 +149,13 @@ int md5Update(t_md5_ctx *ctx, const unsigned char *data, size_t len) {
         size_t chunk_size = (512 - ctx->bitlen) / 8;
         memcpy(&ctx->buffer[ctx->bitlen / 8], &data[offset], chunk_size);
 #ifdef DEBUG
-        log_debug("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
+        printf("Processing chunk of size: %zu bytes, data: [%s]", chunk_size, &data[offset]);
 #endif
         ctx->bitlen += chunk_size * 8;
         offset += chunk_size;
         md5Compression(ctx);
 #ifdef DEBUG
-        log_debug("Current offset: %zu, bitlen: %llu, bytelen: %llu", offset, ctx->bitlen, ctx->bytelen);
+        printf("Current offset: %zu, bitlen: %lu, bytelen: %lu", offset, ctx->bitlen, ctx->bytelen);
 #endif
         ctx->bitlen = 0;
     }
