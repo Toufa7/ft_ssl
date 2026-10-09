@@ -204,6 +204,13 @@ int main(int ac, char *av[])
         const t_commands *cmd = findCommand(av[1]);
         if (!cmd) {
             fprintf(stderr, "ft_ssl: invalid command provided: %s\n", av[1]);
+            fprintf(stderr, "Available commands:\n");
+#ifdef BONUS
+            fprintf(stderr," md5\n sha256\n sha1\n sha512\n");
+#endif
+#ifndef BONUS            
+            fprintf(stderr," md5\n sha256\n");
+#endif
             return 1;
         }
         t_target targets[ac > 2 ? ac - 2 : 1];
